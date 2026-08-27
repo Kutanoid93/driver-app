@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QrScanner } from '../components/QrScanner'
 import { useAuth } from '../hooks/useAuth'
-import { getDriverByEmail, getTrailers, getVehicleByQrCode } from '../lib/api'
+import { getAvailableVehicles, getDriverByEmail, getTrailers, getVehicleByQrCode } from '../lib/api'
 import { createSessionOffline } from '../lib/offlineActions'
 import { showOfflineSavedNotice } from '../lib/offlineNotice'
 import type { Trailer, Vehicle } from '../lib/database.types'
 
-type Step = 'idle' | 'scan' | 'looking-up' | 'not-found' | 'confirm' | 'starting'
+type Step = 'idle' | 'scan' | 'looking-up' | 'not-found' | 'pick-list' | 'confirm' | 'starting'
 
 export function StartShift() {
   const { session } = useAuth()
@@ -21,6 +21,8 @@ export function StartShift() {
   const [trailersLoading, setTrailersLoading] = useState(false)
   const [selectedTrailerId, setSelectedTrailerId] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
+  const [vehiclesLoading, setVehiclesLoading] = useState(false)
 
   async function handleScan(qrCode: string) {
     setStep('looking-up')
@@ -46,6 +48,28 @@ export function StartShift() {
   function handleStartScan() {
     setScanKey((key) => key + 1)
     setStep('scan')
+  }
+
+  async function handleShowVehicleList() {
+    setStep('pick-list')
+
+    if (availableVehicles.length === 0) {
+      setVehiclesLoading(true)
+      try {
+        setAvailableVehicles(await getAvailableVehicles())
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setVehiclesLoading(false)
+      }
+    }
+  }
+
+  function handleSelectVehicleFromList(selected: Vehicle) {
+    setVehicle(selected)
+    setHasTrailer(false)
+    setSelectedTrailerId('')
+    setStep('confirm')
   }
 
   function handleRescan() {
@@ -119,13 +143,65 @@ export function StartShift() {
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Rozpocznij zmiane</h1>
 
       {step === 'idle' && (
-        <button
-          type="button"
-          onClick={handleStartScan}
-          className="rounded-lg bg-blue-700 px-8 py-4 text-lg font-medium text-white"
-        >
-          Skanuj pojazd
-        </button>
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={handleStartScan}
+            className="rounded-lg bg-blue-700 px-8 py-4 text-lg font-medium text-white"
+          >
+            Skanuj pojazd
+          </button>
+          <button
+            type="button"
+            onClick={handleShowVehicleList}
+            className="text-sm text-slate-500 underline dark:text-slate-400"
+          >
+            Wybierz pojazd z listy
+          </button>
+        </div>
+      )}
+
+      {step === 'pick-list' && (
+        <div className="flex w-full max-w-sm flex-col gap-4">
+          {vehiclesLoading && (
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              Ladowanie pojazdow...
+            </p>
+          )}
+
+          {!vehiclesLoading && availableVehicles.length === 0 && (
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+              Brak dostepnych pojazdow.
+            </p>
+          )}
+
+          <ul className="flex flex-col gap-3">
+            {availableVehicles.map((available) => (
+              <li key={available.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectVehicleFromList(available)}
+                  className="w-full rounded-xl border border-slate-200 p-4 text-left dark:border-slate-700"
+                >
+                  <p className="text-base font-semibold text-slate-900 dark:text-white">
+                    {available.name}
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {available.vehicle_type} - {available.plate}
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            onClick={() => setStep('idle')}
+            className="text-sm text-slate-500 underline dark:text-slate-400"
+          >
+            Wroc do skanowania
+          </button>
+        </div>
       )}
 
       {step === 'scan' && (
@@ -164,7 +240,7 @@ export function StartShift() {
       {(step === 'confirm' || step === 'starting') && vehicle && (
         <div className="flex w-full max-w-sm flex-col gap-5">
           <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-            <p className="text-sm text-slate-500 dark:text-slate-400">Zeskanowany pojazd</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Wybrany pojazd</p>
             <p className="text-lg font-semibold text-slate-900 dark:text-white">{vehicle.name}</p>
             <p className="text-sm text-slate-600 dark:text-slate-300">
               {vehicle.vehicle_type} - {vehicle.plate}

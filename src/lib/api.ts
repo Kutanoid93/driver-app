@@ -31,6 +31,17 @@ export async function getVehicleByQrCode(qrCode: string): Promise<Vehicle | null
   return data
 }
 
+export async function getAvailableVehicles(): Promise<Vehicle[]> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('status', 'available')
+    .order('name', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
 export async function getTrailers(): Promise<Trailer[]> {
   const { data, error } = await supabase
     .from('trailers')
