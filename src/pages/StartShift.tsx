@@ -143,18 +143,19 @@ export function StartShift() {
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Rozpocznij zmiane</h1>
 
       {step === 'idle' && (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex w-full max-w-xs flex-col items-center gap-3">
           <button
             type="button"
             onClick={handleStartScan}
-            className="rounded-lg bg-blue-700 px-8 py-4 text-lg font-medium text-white"
+            className="w-full rounded-lg bg-blue-700 px-8 py-4 text-lg font-medium text-white"
           >
             Skanuj pojazd
           </button>
+          <p className="text-sm text-slate-400 dark:text-slate-500">lub</p>
           <button
             type="button"
             onClick={handleShowVehicleList}
-            className="text-sm text-slate-500 underline dark:text-slate-400"
+            className="w-full rounded-lg border-2 border-blue-700 px-8 py-4 text-lg font-medium text-blue-700 dark:border-blue-400 dark:text-blue-400"
           >
             Wybierz pojazd z listy
           </button>
