@@ -121,10 +121,16 @@ export function Shift() {
     }
   }
 
-  async function handleIncidentSubmit({ description, file }: { description: string; file: File }) {
+  async function handleIncidentSubmit({
+    description,
+    file,
+  }: {
+    description: string
+    file: File | null
+  }) {
     if (!driver || !vehicle || !activeSession) return
 
-    const photoUrl = await uploadIncidentPhoto(file, driver.id)
+    const photoUrl = file ? await uploadIncidentPhoto(file, driver.id) : undefined
 
     await createIncident({
       description,

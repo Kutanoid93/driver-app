@@ -1,23 +1,38 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 interface IncidentFormProps {
-  onSubmit: (params: { description: string; file: File }) => Promise<void>
+  onSubmit: (params: { description: string; file: File | null }) => Promise<void>
   onCancel: () => void
 }
 
 export function IncidentForm({ onSubmit, onCancel }: IncidentFormProps) {
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
     if (!file) {
-      setError('Dodaj zdjecie awarii.')
+      setPreviewUrl(null)
       return
     }
+
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setFile(event.target.files?.[0] ?? null)
+    event.target.value = ''
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
 
     setSubmitting(true)
     setError(null)
@@ -52,18 +67,60 @@ export function IncidentForm({ onSubmit, onCancel }: IncidentFormProps) {
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="incident-photo" className="text-sm text-slate-600 dark:text-slate-300">
-          Zdjecie
-        </label>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm text-slate-600 dark:text-slate-300">Zdjecie (opcjonalnie)</span>
+
         <input
-          id="incident-photo"
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          className="text-sm text-slate-600 dark:text-slate-300"
+          onChange={handleFileChange}
+          className="hidden"
         />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {previewUrl && (
+          <div className="flex flex-col items-start gap-2">
+            <img
+              src={previewUrl}
+              alt="Podglad wybranego zdjecia"
+              className="h-40 w-full rounded-lg object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setFile(null)}
+              className="text-sm text-blue-700 underline dark:text-blue-400"
+            >
+              Zmien zdjecie
+            </button>
+          </div>
+        )}
+
+        {!previewUrl && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            >
+              Zrob zdjecie
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            >
+              Dodaj z galerii
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
