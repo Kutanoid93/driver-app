@@ -14,6 +14,7 @@ import {
 import {
   createAdHocTaskOffline,
   createIncidentOffline,
+  endSessionOffline,
   updateTaskNotesOffline,
   updateTaskStatusOffline,
 } from '../lib/offlineActions'
@@ -38,6 +39,10 @@ export function Shift() {
   const [addTaskError, setAddTaskError] = useState<string | null>(null)
 
   const [showIncidentForm, setShowIncidentForm] = useState(false)
+
+  const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false)
+  const [endingShift, setEndingShift] = useState(false)
+  const [endShiftError, setEndShiftError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -181,6 +186,27 @@ export function Shift() {
     setShowIncidentForm(false)
   }
 
+  async function handleEndShift() {
+    if (!activeSession) return
+
+    setEndingShift(true)
+    setEndShiftError(null)
+
+    try {
+      const result = await endSessionOffline(activeSession.id)
+
+      if (result.queued) {
+        showOfflineSavedNotice()
+      }
+
+      navigate('/', { replace: true })
+    } catch (err) {
+      console.error(err)
+      setEndShiftError('Nie udalo sie zakonczyc zmiany. Sprobuj ponownie.')
+      setEndingShift(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-svh items-center justify-center bg-white dark:bg-slate-900">
@@ -295,6 +321,45 @@ export function Shift() {
               className="w-full rounded-lg bg-red-600 px-4 py-3 text-base font-medium text-white"
             >
               Zglos awarie
+            </button>
+          )}
+        </section>
+
+        <section>
+          {showEndShiftConfirm ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                Czy na pewno chcesz zakonczyc zmiane?
+              </p>
+
+              {endShiftError && <p className="text-sm text-red-600">{endShiftError}</p>}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleEndShift}
+                  disabled={endingShift}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  {endingShift ? 'Konczenie...' : 'Tak, zakoncz zmiane'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEndShiftConfirm(false)}
+                  disabled={endingShift}
+                  className="rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-300"
+                >
+                  Anuluj
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowEndShiftConfirm(true)}
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            >
+              Zakoncz zmiane
             </button>
           )}
         </section>
