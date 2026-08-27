@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { LoggedOut } from './pages/LoggedOut'
+import { Shift } from './pages/Shift'
 
 const StartShift = lazy(() => import('./pages/StartShift').then((m) => ({ default: m.StartShift })))
 
@@ -36,6 +37,14 @@ function App() {
                 >
                   <StartShift />
                 </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shift"
+            element={
+              <ProtectedRoute>
+                <Shift />
               </ProtectedRoute>
             }
           />

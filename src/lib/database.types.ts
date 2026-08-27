@@ -13,7 +13,7 @@ export type Json =
 // to zwykly `text` bez ograniczenia CHECK, wiec DB przyjmie dowolny string.
 export type VehicleStatus = 'available' | 'in_use' | 'maintenance' | 'out_of_service'
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent'
-export type TaskStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled'
+export type TaskStatus = 'planned' | 'in_progress' | 'done' | 'cancelled'
 export type IncidentStatus = 'reported' | 'in_review' | 'resolved'
 
 export interface Database {

@@ -41,6 +41,31 @@ export async function getTrailers(): Promise<Trailer[]> {
   return data
 }
 
+export async function getVehicleById(id: string): Promise<Vehicle | null> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function getActiveSession(driverId: string): Promise<Session | null> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('driver_id', driverId)
+    .is('end_time', null)
+    .order('start_time', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export async function createSession(params: {
   driverId: string
   vehicleId: string
@@ -94,6 +119,31 @@ export async function getTasksForSession(sessionId: string): Promise<Task[]> {
   return data
 }
 
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
+
+export function sortTasksByPriority(tasks: Task[]): Task[] {
+  return [...tasks].sort(
+    (a, b) => (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99),
+  )
+}
+
+export async function getTodayTasksForDriverAndVehicle(
+  driverId: string,
+  vehicleId: string,
+): Promise<Task[]> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('driver_id', driverId)
+    .eq('vehicle_id', vehicleId)
+    .eq('assigned_date', today)
+
+  if (error) throw error
+  return sortTasksByPriority(data)
+}
+
 export async function updateTaskStatus(
   taskId: string,
   status: TaskStatus,
@@ -102,8 +152,20 @@ export async function updateTaskStatus(
     .from('tasks')
     .update({
       status,
-      completed_at: status === 'completed' ? new Date().toISOString() : null,
+      completed_at: status === 'done' ? new Date().toISOString() : null,
     })
+    .eq('id', taskId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateTaskNotes(taskId: string, notes: string): Promise<Task> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ notes })
     .eq('id', taskId)
     .select()
     .single()
@@ -119,7 +181,6 @@ export async function createAdHocTask(params: {
   vehicleId?: string
   assignedDate?: string
   priority?: string
-  notes?: string
 }): Promise<Task> {
   const { data, error } = await supabase
     .from('tasks')
@@ -130,14 +191,28 @@ export async function createAdHocTask(params: {
       vehicle_id: params.vehicleId,
       assigned_date: params.assignedDate ?? new Date().toISOString().slice(0, 10),
       priority: params.priority,
-      notes: params.notes,
       is_ad_hoc: true,
+      status: 'in_progress',
     })
     .select()
     .single()
 
   if (error) throw error
   return data
+}
+
+export async function uploadIncidentPhoto(file: File, driverId: string): Promise<string> {
+  const extension = file.name.split('.').pop() ?? 'jpg'
+  const path = `${driverId}/${crypto.randomUUID()}.${extension}`
+
+  const { error } = await supabase.storage.from('incidents').upload(path, file, {
+    contentType: file.type,
+  })
+
+  if (error) throw error
+
+  const { data } = supabase.storage.from('incidents').getPublicUrl(path)
+  return data.publicUrl
 }
 
 export async function createIncident(params: {

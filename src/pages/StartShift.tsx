@@ -90,7 +90,7 @@ export function StartShift() {
         trailerId: hasTrailer && selectedTrailerId ? selectedTrailerId : undefined,
       })
 
-      navigate('/', { replace: true })
+      navigate('/shift', { replace: true })
     } catch (err) {
       console.error(err)
       setFormError('Nie udalo sie rozpoczac zmiany. Sprobuj ponownie.')
