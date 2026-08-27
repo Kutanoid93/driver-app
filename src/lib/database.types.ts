@@ -14,6 +14,7 @@ export type Json =
 export type VehicleStatus = 'available' | 'in_use' | 'maintenance' | 'out_of_service'
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent'
 export type TaskStatus = 'planned' | 'in_progress' | 'done' | 'cancelled'
+export type TaskType = 'zaladunek' | 'demontaz' | 'montaz' | 'dostawka' | 'relokacja' | 'inne'
 export type IncidentStatus = 'reported' | 'in_review' | 'resolved'
 
 export interface Database {
@@ -169,6 +170,15 @@ export interface Database {
           notes: string | null
           created_at: string
           completed_at: string | null
+          task_type: string | null
+          location_name: string | null
+          address: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          apm_type: string | null
+          scheduled_time: string | null
+          configuration: string | null
+          ground_type: string | null
         }
         Insert: {
           id?: string
@@ -183,6 +193,15 @@ export interface Database {
           notes?: string | null
           created_at?: string
           completed_at?: string | null
+          task_type?: string | null
+          location_name?: string | null
+          address?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          apm_type?: string | null
+          scheduled_time?: string | null
+          configuration?: string | null
+          ground_type?: string | null
         }
         Update: {
           id?: string
@@ -197,6 +216,15 @@ export interface Database {
           notes?: string | null
           created_at?: string
           completed_at?: string | null
+          task_type?: string | null
+          location_name?: string | null
+          address?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          apm_type?: string | null
+          scheduled_time?: string | null
+          configuration?: string | null
+          ground_type?: string | null
         }
         Relationships: [
           {
