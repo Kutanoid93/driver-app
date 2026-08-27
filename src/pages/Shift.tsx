@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Menu } from '../components/Menu'
 import { TaskItem } from '../components/TaskItem'
 import { IncidentForm } from '../components/IncidentForm'
+import { EquipmentChecklist } from '../components/EquipmentChecklist'
 import { useAuth } from '../hooks/useAuth'
 import {
   getActiveSession,
@@ -39,6 +40,7 @@ export function Shift() {
   const [addTaskError, setAddTaskError] = useState<string | null>(null)
 
   const [showIncidentForm, setShowIncidentForm] = useState(false)
+  const [showChecklist, setShowChecklist] = useState(false)
 
   const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false)
   const [endingShift, setEndingShift] = useState(false)
@@ -312,16 +314,30 @@ export function Shift() {
         </section>
 
         <section>
-          {showIncidentForm ? (
+          {showChecklist ? (
+            <EquipmentChecklist
+              routeId={activeSession.route_id}
+              onClose={() => setShowChecklist(false)}
+            />
+          ) : showIncidentForm ? (
             <IncidentForm onSubmit={handleIncidentSubmit} onCancel={() => setShowIncidentForm(false)} />
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowIncidentForm(true)}
-              className="w-full rounded-lg bg-red-600 px-4 py-3 text-base font-medium text-white"
-            >
-              Zglos awarie
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowChecklist(true)}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-base font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+              >
+                Sprzet na trase
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowIncidentForm(true)}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-3 text-base font-medium text-white"
+              >
+                Zglos awarie
+              </button>
+            </div>
           )}
         </section>
 

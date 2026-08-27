@@ -108,6 +108,7 @@ export interface Database {
           end_lat: number | null
           end_lng: number | null
           created_at: string
+          route_id: string | null
         }
         Insert: {
           id?: string
@@ -121,6 +122,7 @@ export interface Database {
           end_lat?: number | null
           end_lng?: number | null
           created_at?: string
+          route_id?: string | null
         }
         Update: {
           id?: string
@@ -134,6 +136,7 @@ export interface Database {
           end_lat?: number | null
           end_lng?: number | null
           created_at?: string
+          route_id?: string | null
         }
         Relationships: [
           {
@@ -299,6 +302,33 @@ export interface Database {
           },
         ]
       }
+      route_checklist_items: {
+        Row: {
+          id: string
+          route_id: string
+          item_name: string
+          quantity_needed: number
+          is_packed: boolean
+          packed_at: string | null
+        }
+        Insert: {
+          id?: string
+          route_id: string
+          item_name: string
+          quantity_needed?: number
+          is_packed?: boolean
+          packed_at?: string | null
+        }
+        Update: {
+          id?: string
+          route_id?: string
+          item_name?: string
+          quantity_needed?: number
+          is_packed?: boolean
+          packed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -326,3 +356,6 @@ export type TaskUpdate = Database['public']['Tables']['tasks']['Update']
 
 export type Incident = Database['public']['Tables']['incidents']['Row']
 export type IncidentInsert = Database['public']['Tables']['incidents']['Insert']
+
+export type ChecklistItem = Database['public']['Tables']['route_checklist_items']['Row']
+export type ChecklistItemUpdate = Database['public']['Tables']['route_checklist_items']['Update']

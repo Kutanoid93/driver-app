@@ -46,6 +46,11 @@ interface CreateIncidentPayload {
   photoFile?: File
 }
 
+interface UpdateChecklistItemPayload {
+  itemId: string
+  isPacked: boolean
+}
+
 interface OperationMap {
   createSession: CreateSessionPayload
   endSession: EndSessionPayload
@@ -53,6 +58,7 @@ interface OperationMap {
   updateTaskNotes: UpdateTaskNotesPayload
   createAdHocTask: CreateAdHocTaskPayload
   createIncident: CreateIncidentPayload
+  updateChecklistItem: UpdateChecklistItemPayload
 }
 
 export type OperationType = keyof OperationMap
@@ -147,6 +153,9 @@ async function executeOperation(op: QueuedOperation): Promise<void> {
       await api.createIncident({ ...op.payload, photoUrl })
       return
     }
+    case 'updateChecklistItem':
+      await api.updateChecklistItem(op.payload.itemId, op.payload.isPacked)
+      return
   }
 }
 

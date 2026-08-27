@@ -1,7 +1,7 @@
 import * as api from './api'
 import { enqueueOperation } from './offlineQueue'
 import { isNetworkError } from './network'
-import type { Incident, Session, Task, TaskStatus } from './database.types'
+import type { ChecklistItem, Incident, Session, Task, TaskStatus } from './database.types'
 
 export type OfflineResult<T> = { queued: true } | { queued: false; data: T }
 
@@ -64,6 +64,19 @@ export async function createAdHocTaskOffline(
   } catch (err) {
     if (!isNetworkError(err)) throw err
     await enqueueOperation('createAdHocTask', params)
+    return { queued: true }
+  }
+}
+
+export async function updateChecklistItemOffline(
+  itemId: string,
+  isPacked: boolean,
+): Promise<OfflineResult<ChecklistItem>> {
+  try {
+    return { queued: false, data: await api.updateChecklistItem(itemId, isPacked) }
+  } catch (err) {
+    if (!isNetworkError(err)) throw err
+    await enqueueOperation('updateChecklistItem', { itemId, isPacked })
     return { queued: true }
   }
 }

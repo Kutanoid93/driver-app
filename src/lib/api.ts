@@ -7,6 +7,7 @@ import type {
   Task,
   TaskStatus,
   Incident,
+  ChecklistItem,
 } from './database.types'
 
 export async function getDriverByEmail(email: string): Promise<Driver | null> {
@@ -224,6 +225,35 @@ export async function uploadIncidentPhoto(file: File, driverId: string): Promise
 
   const { data } = supabase.storage.from('incidents').getPublicUrl(path)
   return data.publicUrl
+}
+
+export async function getChecklistForRoute(routeId: string): Promise<ChecklistItem[]> {
+  const { data, error } = await supabase
+    .from('route_checklist_items')
+    .select('*')
+    .eq('route_id', routeId)
+    .order('item_name', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export async function updateChecklistItem(
+  itemId: string,
+  isPacked: boolean,
+): Promise<ChecklistItem> {
+  const { data, error } = await supabase
+    .from('route_checklist_items')
+    .update({
+      is_packed: isPacked,
+      packed_at: isPacked ? new Date().toISOString() : null,
+    })
+    .eq('id', itemId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 export async function createIncident(params: {
