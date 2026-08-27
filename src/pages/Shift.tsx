@@ -5,18 +5,20 @@ import { TaskItem } from '../components/TaskItem'
 import { IncidentForm } from '../components/IncidentForm'
 import { useAuth } from '../hooks/useAuth'
 import {
-  createAdHocTask,
-  createIncident,
   getActiveSession,
   getDriverByEmail,
   getTodayTasksForDriverAndVehicle,
   getVehicleById,
   sortTasksByPriority,
-  updateTaskNotes,
-  updateTaskStatus,
-  uploadIncidentPhoto,
 } from '../lib/api'
-import type { Driver, Session, Task, Vehicle } from '../lib/database.types'
+import {
+  createAdHocTaskOffline,
+  createIncidentOffline,
+  updateTaskNotesOffline,
+  updateTaskStatusOffline,
+} from '../lib/offlineActions'
+import { showOfflineSavedNotice } from '../lib/offlineNotice'
+import type { Driver, Session, Task, TaskStatus, Vehicle } from '../lib/database.types'
 
 export function Shift() {
   const { session } = useAuth()
@@ -83,17 +85,45 @@ export function Shift() {
   }, [session, navigate])
 
   async function handleToggleDone(task: Task, done: boolean) {
+    const nextStatus: TaskStatus = done ? 'done' : 'planned'
+
     try {
-      const updated = await updateTaskStatus(task.id, done ? 'done' : 'planned')
-      setTasks((prev) => sortTasksByPriority(prev.map((t) => (t.id === updated.id ? updated : t))))
+      const result = await updateTaskStatusOffline(task.id, nextStatus)
+
+      if (result.queued) {
+        showOfflineSavedNotice()
+        setTasks((prev) =>
+          sortTasksByPriority(
+            prev.map((t) =>
+              t.id === task.id
+                ? {
+                    ...t,
+                    status: nextStatus,
+                    completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
+                  }
+                : t,
+            ),
+          ),
+        )
+        return
+      }
+
+      setTasks((prev) => sortTasksByPriority(prev.map((t) => (t.id === result.data.id ? result.data : t))))
     } catch (err) {
       console.error(err)
     }
   }
 
   async function handleSaveNote(task: Task, notes: string) {
-    const updated = await updateTaskNotes(task.id, notes)
-    setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+    const result = await updateTaskNotesOffline(task.id, notes)
+
+    if (result.queued) {
+      showOfflineSavedNotice()
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, notes } : t)))
+      return
+    }
+
+    setTasks((prev) => prev.map((t) => (t.id === result.data.id ? result.data : t)))
   }
 
   async function handleAddTask(event: FormEvent) {
@@ -104,13 +134,19 @@ export function Shift() {
     setAddTaskError(null)
 
     try {
-      const created = await createAdHocTask({
+      const result = await createAdHocTaskOffline({
         description: newTaskDescription.trim(),
         sessionId: activeSession.id,
         driverId: driver.id,
         vehicleId: vehicle.id,
       })
-      setTasks((prev) => sortTasksByPriority([...prev, created]))
+
+      if (result.queued) {
+        showOfflineSavedNotice()
+      } else {
+        setTasks((prev) => sortTasksByPriority([...prev, result.data]))
+      }
+
       setNewTaskDescription('')
       setShowAddTask(false)
     } catch (err) {
@@ -130,15 +166,17 @@ export function Shift() {
   }) {
     if (!driver || !vehicle || !activeSession) return
 
-    const photoUrl = file ? await uploadIncidentPhoto(file, driver.id) : undefined
-
-    await createIncident({
+    const result = await createIncidentOffline({
       description,
       sessionId: activeSession.id,
       driverId: driver.id,
       vehicleId: vehicle.id,
-      photoUrl,
+      file,
     })
+
+    if (result.queued) {
+      showOfflineSavedNotice()
+    }
 
     setShowIncidentForm(false)
   }

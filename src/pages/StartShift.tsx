@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QrScanner } from '../components/QrScanner'
 import { useAuth } from '../hooks/useAuth'
-import { createSession, getDriverByEmail, getTrailers, getVehicleByQrCode } from '../lib/api'
+import { getDriverByEmail, getTrailers, getVehicleByQrCode } from '../lib/api'
+import { createSessionOffline } from '../lib/offlineActions'
+import { showOfflineSavedNotice } from '../lib/offlineNotice'
 import type { Trailer, Vehicle } from '../lib/database.types'
 
 type Step = 'idle' | 'scan' | 'looking-up' | 'not-found' | 'confirm' | 'starting'
@@ -84,11 +86,17 @@ export function StartShift() {
         return
       }
 
-      await createSession({
+      const result = await createSessionOffline({
         driverId: driver.id,
         vehicleId: vehicle.id,
         trailerId: hasTrailer && selectedTrailerId ? selectedTrailerId : undefined,
       })
+
+      if (result.queued) {
+        showOfflineSavedNotice()
+        navigate('/', { replace: true })
+        return
+      }
 
       navigate('/shift', { replace: true })
     } catch (err) {

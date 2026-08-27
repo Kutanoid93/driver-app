@@ -1,7 +1,10 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
+import { useOfflineSync } from './hooks/useOfflineSync'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { OfflineQueueBadge } from './components/OfflineQueueBadge'
+import { OfflineNoticeToast } from './components/OfflineNoticeToast'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { LoggedOut } from './pages/LoggedOut'
@@ -10,6 +13,8 @@ import { Shift } from './pages/Shift'
 const StartShift = lazy(() => import('./pages/StartShift').then((m) => ({ default: m.StartShift })))
 
 function App() {
+  useOfflineSync()
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -49,6 +54,8 @@ function App() {
             }
           />
         </Routes>
+        <OfflineQueueBadge />
+        <OfflineNoticeToast />
       </AuthProvider>
     </BrowserRouter>
   )
