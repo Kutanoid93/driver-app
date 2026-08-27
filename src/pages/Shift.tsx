@@ -8,7 +8,8 @@ import { useAuth } from '../hooks/useAuth'
 import {
   getActiveSession,
   getDriverByEmail,
-  getTodayTasksForDriverAndVehicle,
+  getDriverById,
+  getTodayTasksForVehicle,
   getVehicleById,
   sortTasksByPriority,
 } from '../lib/api'
@@ -31,6 +32,7 @@ export function Shift() {
   const [driver, setDriver] = useState<Driver | null>(null)
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
+  const [coDriver, setCoDriver] = useState<Driver | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
 
@@ -66,16 +68,20 @@ export function Shift() {
         }
 
         const vehicleRecord = await getVehicleById(activeSessionRecord.vehicle_id)
-        const todaysTasks = await getTodayTasksForDriverAndVehicle(
-          driverRecord.id,
-          activeSessionRecord.vehicle_id,
-        )
+        const todaysTasks = await getTodayTasksForVehicle(activeSessionRecord.vehicle_id)
+
+        const otherDriverId =
+          activeSessionRecord.driver_id === driverRecord.id
+            ? activeSessionRecord.co_driver_id
+            : activeSessionRecord.driver_id
+        const otherDriverRecord = otherDriverId ? await getDriverById(otherDriverId) : null
 
         if (cancelled) return
 
         setDriver(driverRecord)
         setActiveSession(activeSessionRecord)
         setVehicle(vehicleRecord)
+        setCoDriver(otherDriverRecord)
         setTasks(todaysTasks)
       } catch (err) {
         console.error(err)
@@ -242,6 +248,9 @@ export function Shift() {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {vehicle.name} - {vehicle.plate}
           </p>
+          {coDriver && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">Zmiana z: {coDriver.full_name}</p>
+          )}
         </div>
 
         <section className="flex flex-col gap-3">

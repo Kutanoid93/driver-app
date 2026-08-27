@@ -109,6 +109,7 @@ export interface Database {
           end_lng: number | null
           created_at: string
           route_id: string | null
+          co_driver_id: string | null
         }
         Insert: {
           id?: string
@@ -123,6 +124,7 @@ export interface Database {
           end_lng?: number | null
           created_at?: string
           route_id?: string | null
+          co_driver_id?: string | null
         }
         Update: {
           id?: string
@@ -137,6 +139,7 @@ export interface Database {
           end_lng?: number | null
           created_at?: string
           route_id?: string | null
+          co_driver_id?: string | null
         }
         Relationships: [
           {
@@ -155,6 +158,12 @@ export interface Database {
             foreignKeyName: 'sessions_trailer_id_fkey'
             columns: ['trailer_id']
             referencedRelation: 'trailers'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'sessions_co_driver_id_fkey'
+            columns: ['co_driver_id']
+            referencedRelation: 'drivers'
             referencedColumns: ['id']
           },
         ]

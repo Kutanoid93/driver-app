@@ -8,6 +8,7 @@ interface CreateSessionPayload {
   driverId: string
   vehicleId: string
   trailerId?: string
+  coDriverId?: string
   startLat?: number
   startLng?: number
 }

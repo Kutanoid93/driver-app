@@ -64,11 +64,33 @@ export async function getVehicleById(id: string): Promise<Vehicle | null> {
   return data
 }
 
+export async function getDriverById(id: string): Promise<Driver | null> {
+  const { data, error } = await supabase
+    .from('drivers')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function getOtherDrivers(excludeDriverId: string): Promise<Driver[]> {
+  const { data, error } = await supabase
+    .from('drivers')
+    .select('*')
+    .neq('id', excludeDriverId)
+    .order('full_name', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
 export async function getActiveSession(driverId: string): Promise<Session | null> {
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
-    .eq('driver_id', driverId)
+    .or(`driver_id.eq.${driverId},co_driver_id.eq.${driverId}`)
     .is('end_time', null)
     .order('start_time', { ascending: false })
     .limit(1)
@@ -82,6 +104,7 @@ export async function createSession(params: {
   driverId: string
   vehicleId: string
   trailerId?: string
+  coDriverId?: string
   startLat?: number
   startLng?: number
 }): Promise<Session> {
@@ -91,6 +114,7 @@ export async function createSession(params: {
       driver_id: params.driverId,
       vehicle_id: params.vehicleId,
       trailer_id: params.trailerId,
+      co_driver_id: params.coDriverId,
       start_lat: params.startLat,
       start_lng: params.startLng,
     })
@@ -139,16 +163,12 @@ export function sortTasksByPriority(tasks: Task[]): Task[] {
   )
 }
 
-export async function getTodayTasksForDriverAndVehicle(
-  driverId: string,
-  vehicleId: string,
-): Promise<Task[]> {
+export async function getTodayTasksForVehicle(vehicleId: string): Promise<Task[]> {
   const today = new Date().toISOString().slice(0, 10)
 
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .eq('driver_id', driverId)
     .eq('vehicle_id', vehicleId)
     .eq('assigned_date', today)
 

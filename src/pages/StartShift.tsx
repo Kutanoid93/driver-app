@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QrScanner } from '../components/QrScanner'
 import { useAuth } from '../hooks/useAuth'
-import { getAvailableVehicles, getDriverByEmail, getTrailers, getVehicleByQrCode } from '../lib/api'
+import {
+  getAvailableVehicles,
+  getDriverByEmail,
+  getOtherDrivers,
+  getTrailers,
+  getVehicleByQrCode,
+} from '../lib/api'
 import { createSessionOffline } from '../lib/offlineActions'
 import { showOfflineSavedNotice } from '../lib/offlineNotice'
-import type { Trailer, Vehicle } from '../lib/database.types'
+import type { Driver, Trailer, Vehicle } from '../lib/database.types'
 
 type Step = 'idle' | 'scan' | 'looking-up' | 'not-found' | 'pick-list' | 'confirm' | 'starting'
 
@@ -23,6 +29,58 @@ export function StartShift() {
   const [formError, setFormError] = useState<string | null>(null)
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
   const [vehiclesLoading, setVehiclesLoading] = useState(false)
+  const [driver, setDriver] = useState<Driver | null>(null)
+  const [driverError, setDriverError] = useState<string | null>(null)
+  const [coDrivers, setCoDrivers] = useState<Driver[]>([])
+  const [selectedCoDriverId, setSelectedCoDriverId] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDriver() {
+      if (!session?.user.email) return
+
+      try {
+        const found = await getDriverByEmail(session.user.email)
+        if (cancelled) return
+
+        if (!found) {
+          setDriverError('Nie znaleziono profilu kierowcy dla tego konta.')
+          return
+        }
+
+        setDriver(found)
+      } catch (err) {
+        console.error(err)
+        if (!cancelled) setDriverError('Nie udalo sie zaladowac profilu kierowcy.')
+      }
+    }
+
+    loadDriver()
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCoDrivers() {
+      if (!driver) return
+
+      try {
+        const others = await getOtherDrivers(driver.id)
+        if (!cancelled) setCoDrivers(others)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    loadCoDrivers()
+    return () => {
+      cancelled = true
+    }
+  }, [driver])
 
   async function handleScan(qrCode: string) {
     setStep('looking-up')
@@ -75,6 +133,7 @@ export function StartShift() {
   function handleRescan() {
     setVehicle(null)
     setFormError(null)
+    setSelectedCoDriverId('')
     setScanKey((key) => key + 1)
     setStep('scan')
   }
@@ -96,24 +155,17 @@ export function StartShift() {
   }
 
   async function handleConfirm() {
-    if (!vehicle || !session?.user.email) return
+    if (!vehicle || !driver) return
 
     setStep('starting')
     setFormError(null)
 
     try {
-      const driver = await getDriverByEmail(session.user.email)
-
-      if (!driver) {
-        setFormError('Nie znaleziono profilu kierowcy dla tego konta.')
-        setStep('confirm')
-        return
-      }
-
       const result = await createSessionOffline({
         driverId: driver.id,
         vehicleId: vehicle.id,
         trailerId: hasTrailer && selectedTrailerId ? selectedTrailerId : undefined,
+        coDriverId: selectedCoDriverId || undefined,
       })
 
       if (result.queued) {
@@ -301,12 +353,32 @@ export function StartShift() {
             </div>
           )}
 
+          <div className="flex flex-col gap-1">
+            <label htmlFor="co-driver" className="text-sm text-slate-600 dark:text-slate-300">
+              Wspolkierowca
+            </label>
+            <select
+              id="co-driver"
+              value={selectedCoDriverId}
+              onChange={(event) => setSelectedCoDriverId(event.target.value)}
+              className="rounded-lg border border-slate-300 px-4 py-3 text-base text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            >
+              <option value="">Brak wspolkierowcy</option>
+              {coDrivers.map((coDriver) => (
+                <option key={coDriver.id} value={coDriver.id}>
+                  {coDriver.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {driverError && <p className="text-sm text-red-600">{driverError}</p>}
           {formError && <p className="text-sm text-red-600">{formError}</p>}
 
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={step === 'starting' || (hasTrailer && !selectedTrailerId)}
+            disabled={step === 'starting' || !driver || (hasTrailer && !selectedTrailerId)}
             className="rounded-lg bg-blue-700 px-4 py-3 text-base font-medium text-white disabled:opacity-60"
           >
             {step === 'starting' ? 'Rozpoczynanie...' : 'Potwierdz i rozpocznij zmiane'}
