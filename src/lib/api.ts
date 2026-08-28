@@ -100,6 +100,18 @@ export async function getActiveSession(driverId: string): Promise<Session | null
   return data
 }
 
+// Best-effort side effect of starting/ending a session - a failure here must
+// never fail the session create/end itself, so errors are swallowed and only
+// logged.
+async function setVehicleStatus(vehicleId: string, status: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('vehicles').update({ status }).eq('id', vehicleId)
+    if (error) throw error
+  } catch (err) {
+    console.error('Nie udalo sie zaktualizowac statusu pojazdu', err)
+  }
+}
+
 export async function createSession(params: {
   driverId: string
   vehicleId: string
@@ -122,6 +134,9 @@ export async function createSession(params: {
     .single()
 
   if (error) throw error
+
+  await setVehicleStatus(data.vehicle_id, 'on_route')
+
   return data
 }
 
@@ -141,6 +156,9 @@ export async function endSession(
     .single()
 
   if (error) throw error
+
+  await setVehicleStatus(data.vehicle_id, 'available')
+
   return data
 }
 
