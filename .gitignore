@@ -15,9 +15,16 @@ dist-ssr
 # env
 .env
 .env.local
+.env.test
 
 # PWA generated files
 dev-dist
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # Editor directories and files
 .vscode/*
