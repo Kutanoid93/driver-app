@@ -311,6 +311,40 @@ export interface Database {
           },
         ]
       }
+      routes: {
+        Row: {
+          id: string
+          route_number: string
+          team_name: string
+          vehicle_id: string | null
+          week_number: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          route_number: string
+          team_name: string
+          vehicle_id?: string | null
+          week_number?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          route_number?: string
+          team_name?: string
+          vehicle_id?: string | null
+          week_number?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'routes_vehicle_id_fkey'
+            columns: ['vehicle_id']
+            referencedRelation: 'vehicles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       route_checklist_items: {
         Row: {
           id: string
@@ -365,6 +399,8 @@ export type TaskUpdate = Database['public']['Tables']['tasks']['Update']
 
 export type Incident = Database['public']['Tables']['incidents']['Row']
 export type IncidentInsert = Database['public']['Tables']['incidents']['Insert']
+
+export type Route = Database['public']['Tables']['routes']['Row']
 
 export type ChecklistItem = Database['public']['Tables']['route_checklist_items']['Row']
 export type ChecklistItemUpdate = Database['public']['Tables']['route_checklist_items']['Update']

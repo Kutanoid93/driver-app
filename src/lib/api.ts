@@ -112,6 +112,26 @@ async function setVehicleStatus(vehicleId: string, status: string): Promise<void
   }
 }
 
+// The route currently assigned to a vehicle - if it has more than one
+// (e.g. left over from different weeks), the one with the highest
+// week_number is the current one; ties broken by most recently created.
+// Not wrapped in try/catch: letting a real network error propagate here
+// (rather than swallowing it) is what lets createSessionOffline's offline
+// fallback kick in, same as a failure from the session insert itself would.
+async function findCurrentRouteId(vehicleId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('routes')
+    .select('id')
+    .eq('vehicle_id', vehicleId)
+    .order('week_number', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data?.id ?? null
+}
+
 export async function createSession(params: {
   driverId: string
   vehicleId: string
@@ -120,6 +140,8 @@ export async function createSession(params: {
   startLat?: number
   startLng?: number
 }): Promise<Session> {
+  const routeId = await findCurrentRouteId(params.vehicleId)
+
   const { data, error } = await supabase
     .from('sessions')
     .insert({
@@ -129,6 +151,7 @@ export async function createSession(params: {
       co_driver_id: params.coDriverId,
       start_lat: params.startLat,
       start_lng: params.startLng,
+      route_id: routeId,
     })
     .select()
     .single()
